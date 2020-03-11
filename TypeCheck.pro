@@ -43,5 +43,5 @@ RESOURCES += \
     res.qrc
 
 DISTFILES += \
-    LICENSE.txt \
-    README.md
+    README.md \
+    LICENSE
