@@ -146,7 +146,7 @@ void Record::operator()(){
 //    s.push_back(i);
 //}
 //s.sort();
-static std::array<char*, 33> RusAlphabet = {
+static std::array<const char*, 33> RusAlphabet = {
     "а", "б", "в", "г", "д", "е", "ё", "ж", "з", "и",
     "й", "к", "л", "м", "н", "о", "п", "р", "с", "т",
     "у", "ф", "х", "ц", "ч", "ш", "щ", "ъ", "ы", "ь",
@@ -161,11 +161,11 @@ static std::array<char, 26> EngAlphabet = {
 };
 
 static std::array<QChar, 16> ASCII = {'a', 'A', 'B', 'c', 'C', 'e', 'E', 'H', 'K', 'M', 'o', 'O', 'p', 'P', 'T', 'y'};
-static std::array<char*, 16> UTF16 = {"а", "А", "В", "с", "С", "е", "Е", "Н", "К", "М", "о", "О", "р", "Р", "Т", "у"};
+static std::array<const char*, 16> UTF16 = {"а", "А", "В", "с", "С", "е", "Е", "Н", "К", "М", "о", "О", "р", "Р", "Т", "у"};
 
 void ASCIItoUTF16(QStringList &s){ // if russian text only! make it understand if there is other language present
     for (auto i = 0; i < s.size(); i++)
-        for(auto p = 0; p < ASCII.size(); p++){
+        for(auto p = 0lu; p < ASCII.size(); p++){
             int pos = 0;
             while (pos != -1){
                 pos = s[i].lastIndexOf(ASCII[p]); // found position of ascii
@@ -177,7 +177,7 @@ void ASCIItoUTF16(QStringList &s){ // if russian text only! make it understand i
 void findWordID(QString& s, std::vector<QString> *wbuf){
     QString ch = s.toLower();
     ch.resize(1);
-    for(auto i = 0; i < RusAlphabet.size(); i++)
+    for(auto i = 0lu; i < RusAlphabet.size(); i++)
         if(ch.compare(RusAlphabet[i]) == 0 && (s.size() > 1)) wbuf[i].push_back(s);
 }
 
@@ -236,18 +236,17 @@ void Spelling::operator()(){
         for(auto i = 0; i < 33; i++)
             h->Current[i].clear();
         QStringList err;
-        QTextDocument *asDoc = h->ui->textInput->document();
         QString text = h->ui->textInput->toPlainText();
         QStringList textList = textOperation(text);
         ASCIItoUTF16(textList);
         textList.sort();
         QSlistToVector(textList, h->Current);
 
-        // spelling check
+        // spelling check, doesnt work
         for( auto i = 0; i < 33; i++)
             if(!h->Current[i].empty()) // if we even have words starting at i
-                for(int p = 0; p < h->Current[i].size(); p++)
-                    for(int j = 0; j < h->RusWords[i].size(); j++){
+                for(auto p = 0lu; p < h->Current[i].size(); p++)
+                    for(auto j = 0lu; j < h->RusWords[i].size(); j++){
                         auto res = h->Current[i][p].compare(h->RusWords[i][j]);
                         if(res != 0) err.append(h->Current[i][p]); // mark as wrong spelled
                     }
