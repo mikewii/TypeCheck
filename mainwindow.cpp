@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "dict.h"
 
 const std::string fname = "tc.mw";
 
@@ -12,7 +13,7 @@ MainWindow::MainWindow(QWidget *parent) :
     stop = false;
     updateAvg = false;
     buildDict = false;
-    spell = false;
+    spellcheck = false;
     ui->setupUi(this);
     ui->textInput->setReadOnly(true);
 
@@ -63,7 +64,7 @@ void MainWindow::Abort(){
     ui->doubleLimit->setEnabled(true);
     ui->lcdSymbols->display(ui->textInput->toPlainText().size());
     updateAvg = true;
-    spell = true;
+    spellcheck = true;
 }
 
 void MainWindow::on_btnAbort_clicked() {
@@ -146,112 +147,34 @@ void Record::operator()(){
 //    s.push_back(i);
 //}
 //s.sort();
-static std::array<const char*, 33> RusAlphabet = {
-    "а", "б", "в", "г", "д", "е", "ё", "ж", "з", "и",
-    "й", "к", "л", "м", "н", "о", "п", "р", "с", "т",
-    "у", "ф", "х", "ц", "ч", "ш", "щ", "ъ", "ы", "ь",
-    "э", "ю", "я"
-};
-
-
-static std::array<char, 26> EngAlphabet = {
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
-    'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-    'u', 'v', 'w', 'x', 'y', 'z'
-};
-
-static std::array<QChar, 16> ASCII = {'a', 'A', 'B', 'c', 'C', 'e', 'E', 'H', 'K', 'M', 'o', 'O', 'p', 'P', 'T', 'y'};
-static std::array<const char*, 16> UTF16 = {"а", "А", "В", "с", "С", "е", "Е", "Н", "К", "М", "о", "О", "р", "Р", "Т", "у"};
-
-void ASCIItoUTF16(QStringList &s){ // if russian text only! make it understand if there is other language present
-    for (auto i = 0; i < s.size(); i++)
-        for(auto p = 0lu; p < ASCII.size(); p++){
-            int pos = 0;
-            while (pos != -1){
-                pos = s[i].lastIndexOf(ASCII[p]); // found position of ascii
-                if(pos >= 0) s[i].replace(pos, 1, UTF16[p]);
-            }
-        }
-}
-
-void findWordID(QString& s, std::vector<QString> *wbuf){
-    QString ch = s.toLower();
-    ch.resize(1);
-    for(auto i = 0lu; i < RusAlphabet.size(); i++)
-        if(ch.compare(RusAlphabet[i]) == 0 && (s.size() > 1)) wbuf[i].push_back(s);
-}
-
 
 void MainWindow::on_textPreview_textChanged() { // make ascii to utf16 convertor
     buildDict = true;
 }
 
-QStringList textOperation(QString& t){
-    t.replace('\n', " ");
-    t.remove(".");
-    t.remove(",");
-    t.remove("?");
-    return t.split(" ");
 
-}
 
-void QSlistToVector(QStringList& lst, std::vector<QString>* vec){
-    for(auto i = 0; i < lst.size(); i++)
-        findWordID(lst[i], vec);
-}
 
-void formatWord(QString& s, QTextDocument* doc){
-    QTextCursor newCursor(doc);
-          while (!newCursor.isNull() && !newCursor.atEnd()) {
-              newCursor = doc->find(s, newCursor);
-
-              if (!newCursor.isNull()) {
-                  newCursor.movePosition(QTextCursor::WordRight,
-                                         QTextCursor::KeepAnchor);
-                  QTextCharFormat fmt;
-                  fmt.setUnderlineStyle(QTextCharFormat::SingleUnderline);
-                  newCursor.mergeCharFormat(fmt);
-              }
-          }
-}
 
 void Spelling::operator()(){
-    while(!h->terminate)
+    while(!h->terminate){
         if(h->buildDict){
-            auto start = std::chrono::system_clock::now();
-            h->RusWords->clear();
-            h->EngWords->clear();
             QString text = h->ui->textPreview->toPlainText();
-            QStringList textList = textOperation(text);
-            ASCIItoUTF16(textList);
-            textList.sort();
-            QSlistToVector(textList, h->RusWords);
+            double time = dict().build(text, dict::type::ru);
 
-            auto end = std::chrono::system_clock::now();
-            std::chrono::duration<double> result = end - start;
-            h->ui->lcdDict->display(result.count());
+            h->ui->lcdDict->display(time);
             h->buildDict = false;
         }
-    else if(h->spell){ // spelling check
-        for(auto i = 0; i < 33; i++)
-            h->Current[i].clear();
+    if(h->spellcheck){ // spelling check
         QStringList err;
         QString text = h->ui->textInput->toPlainText();
-        QStringList textList = textOperation(text);
-        ASCIItoUTF16(textList);
-        textList.sort();
-        QSlistToVector(textList, h->Current);
+        dict a;
+        a.build(text, dict::type::current);
+        err = a.check(dict::type::ru);
 
-        // spelling check, doesnt work
-        for( auto i = 0; i < 33; i++)
-            if(!h->Current[i].empty()) // if we even have words starting at i
-                for(auto p = 0lu; p < h->Current[i].size(); p++)
-                    for(auto j = 0lu; j < h->RusWords[i].size(); j++){
-                        auto res = h->Current[i][p].compare(h->RusWords[i][j]);
-                        if(res != 0) err.append(h->Current[i][p]); // mark as wrong spelled
-                    }
         h->ui->listErrors->addItems(err);
-        h->spell = false;
+        h->spellcheck = false;
         }
+    }
 
 }

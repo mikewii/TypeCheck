@@ -23,7 +23,7 @@ public:
     std::atomic_bool stop;
     std::atomic_bool updateAvg;
     std::atomic_bool buildDict;
-    std::atomic_bool spell;
+    std::atomic_bool spellcheck;
     std::chrono::duration<double> limit;
 
 private slots:
@@ -38,9 +38,6 @@ private:
     friend struct Timer;
     friend struct Record;
     friend struct Spelling;
-    std::vector<QString> Current[33];
-    std::vector<QString> RusWords[33];
-    std::vector<QString> EngWords[26];
 };
 
 struct Timer{ // took me some time to figure this out
